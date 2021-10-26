@@ -1,6 +1,6 @@
 {
-  "name": "contentful-references-copier",
-  "version": "0.1.0",
+  "name": "contentful-reference-copier",
+  "version": "0.0.1",
   "private": true,
   "dependencies": {
     "@contentful/app-sdk": "^4.3.0",
