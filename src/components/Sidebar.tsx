@@ -1,4 +1,5 @@
-import React, { useMemo, useCallback, useReducer } from 'react';
+import React, { useMemo, useCallback } from 'react';
+import { useFormik } from 'formik';
 import { PlainClientAPI } from 'contentful-management';
 import { SidebarExtensionSDK } from '@contentful/app-sdk';
 import { Form, FieldGroup, Select, Option, Button, FormLabel } from '@contentful/forma-36-react-components';
@@ -8,85 +9,99 @@ interface SidebarProps {
   cma: PlainClientAPI;
 }
 
-interface FormValues {
-  field: string;
-  sourceLocale: string;
-  targetLocale: string;
-}
-
 const initialFormValues = {
   field: '',
   sourceLocale: '',
   targetLocale: ''
 }
 
-const formReducer = (formValues: FormValues, action: { name: string; value: string; }): FormValues => {
-  const { name, value } = action;
-
-  return {
-    ...formValues,
-    [name]: value
-  }
+const withPlaceholderOption = (target: string[]) => {
+  return [''].concat(target);
 }
 
 const Sidebar = ({ sdk, cma }: SidebarProps) => {
-  const [{ field: activeField, targetLocale, sourceLocale }, dispatch] = useReducer(formReducer, initialFormValues);
   const fields = useMemo(() => {
     const entryFields = sdk.entry.fields;
 
-    return Object.keys(entryFields).filter(field => entryFields[field].type === 'Array')
+    return withPlaceholderOption(Object.keys(entryFields).filter(field => entryFields[field].type === 'Array'));
   }, [sdk]);
 
-  const locales = sdk.locales.available;
+  const locales = withPlaceholderOption(sdk.locales.available);
+
   // const defaultLocale = sdk.locales.default;
-  const handleCopy = useCallback((values) => {
-    console.log(values);
+  const handleCopy = useCallback(({
+    field,
+    sourceLocale,
+    targetLocale,
+  }) => {
+    const fieldRef = sdk.entry.fields[field];
+    fieldRef.setValue(fieldRef.getValue(sourceLocale), targetLocale);
   }, []);
 
-  const handleFormValueChange = useCallback((e: InputEvent) => {
-    const { name, value } = e.target;
-
-    dispatch({
-      name,
-      value
-    });
-  }, [dispatch]);
+  const {
+    handleChange,
+    values: {
+      field: activeField,
+      targetLocale,
+      sourceLocale
+    },
+    handleSubmit,
+    resetForm
+  } = useFormik({
+    initialValues: initialFormValues,
+    onSubmit: handleCopy
+  });
 
   return (
     <>
-      <Form onSubmit={handleCopy} spacing="condensed">
+      <Form onSubmit={handleSubmit} spacing="condensed">
         <FieldGroup>
-          <FormLabel htmlFor="name">Field</FormLabel>
-          <Select name="field" onChange={handleFormValueChange}>
+          <FormLabel htmlFor="field">Field</FormLabel>
+          <Select
+            name="field"
+            id="field"
+            onChange={handleChange}
+            value={activeField}
+          >
             { fields.map(field => (
-              <Option value={field} key={field} selected={field === activeField }>
+              <Option value={field} key={field}>
                 { field }
               </Option>
             )) }
           </Select>
         </FieldGroup>
         <FieldGroup>
-          <FormLabel htmlFor="name">Source Locale</FormLabel>
-          <Select name="field">
+          <FormLabel htmlFor="sourceLocale">Source Locale</FormLabel>
+          <Select
+            name="sourceLocale"
+            id="sourceLocale"
+            onChange={handleChange}
+            value={sourceLocale}
+          >
             { locales.map(locale => (
-              <Option value={locale} key={locale} selected={locale === sourceLocale}>
+              <Option value={locale} key={locale}>
                 { locale }
               </Option>
             )) }
           </Select>
         </FieldGroup>
         <FieldGroup>
-          <FormLabel htmlFor="name">Target Locale</FormLabel>
-          <Select name="field">
+          <FormLabel htmlFor="targetLocale">Target Locale</FormLabel>
+          <Select
+            name="targetLocale"
+            id="targetLocale"
+            onChange={handleChange}
+            value={targetLocale}
+          >
             { locales.map(locale => (
-              <Option value={locale} key={locale} selected={locale === targetLocale}>
+              <Option value={locale} key={locale}>
                 { locale }
               </Option>
             )) }
           </Select>
         </FieldGroup>
         <FieldGroup>
-          <Button type="submit">Copy</Button>
+          <Button type="submit"> Copy </Button>
         </FieldGroup>
       </Form>
     </>
